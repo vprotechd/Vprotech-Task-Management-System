@@ -34,8 +34,8 @@ import { todayISO } from '../../utils/format';
    CONSTANTS
 ============================================================ */
 
-const MORNING_CUTOFF_HOUR = 9;
-const MORNING_CUTOFF_MINUTE = 40;
+const MORNING_CUTOFF_HOUR = 10;
+const MORNING_CUTOFF_MINUTE = 0;
 
 const LATE_REASON_STORAGE_PREFIX =
   'morning-update-late-reason';
@@ -174,7 +174,7 @@ function isMorningTaskLocked(date) {
 
 
 function cutoffLabel() {
-  return '9:40 AM';
+  return '10:00 AM';
 }
 
 
@@ -1556,7 +1556,7 @@ export default function MorningTaskUpdate() {
             <div>
 
               <p className="font-semibold">
-                Morning submission cutoff: 9:40 AM
+                Morning submission cutoff: 10:00 AM
               </p>
 
 
@@ -1565,7 +1565,7 @@ export default function MorningTaskUpdate() {
                 <p className="mt-0.5">
 
                   You can add, edit and submit morning
-                  tasks normally until 9:40 AM.
+                  tasks normally until 10:00 AM.
 
                 </p>
 
@@ -1576,7 +1576,7 @@ export default function MorningTaskUpdate() {
                 lateSubmissionAllowed && (
 
                   <p className="mt-0.5">
-                    The 9:40 AM cutoff has passed. Enter a reason
+                    The 10:00 AM cutoff has passed. Enter a reason
                     below and submit today's morning tasks. You can
                     continue editing and re-submit them later today.
                   </p>
@@ -1588,7 +1588,7 @@ export default function MorningTaskUpdate() {
 
                   <p className="mt-0.5">
 
-                    The 9:40 AM cutoff has passed.
+                    The 10:00 AM cutoff has passed.
                     A new morning plan cannot be created today.
 
                   </p>
@@ -1651,7 +1651,7 @@ export default function MorningTaskUpdate() {
 
                 Morning update submitted for review.
                 You can still edit tasks or add more.
-                After 9:40 AM, changes require a late-submission reason.
+                After 10:00 AM, changes require a late-submission reason.
 
               </span>
 

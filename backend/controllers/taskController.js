@@ -24,8 +24,8 @@ const {
    CONSTANTS
 ============================================================ */
 
-const MORNING_CUTOFF_HOURS = 9;
-const MORNING_CUTOFF_MINUTES = 40;
+const MORNING_CUTOFF_HOURS = 10;
+const MORNING_CUTOFF_MINUTES = 0;
 
 const MORNING_EDITABLE_STATUSES = [
   'draft',
@@ -979,7 +979,7 @@ const submitMorningTasks =
         if (!submit) {
           throw new ApiError(
             400,
-            'Morning tasks are locked after 9:40 AM. Submit the update with a reason to unlock editing for the rest of the day.'
+            'Morning tasks are locked after 10:00 AM. Submit the update with a reason to unlock editing for the rest of the day.'
           );
         }
 
@@ -994,7 +994,7 @@ const submitMorningTasks =
         if (!lateReason) {
           throw new ApiError(
             400,
-            'A reason is required to submit the morning update after 9:40 AM.'
+            'A reason is required to submit the morning update after 10:00 AM.'
           );
         }
 
@@ -1293,7 +1293,7 @@ const submitMorningTasks =
         else if (isLateWindow) {
 
           message =
-            `${employee.fullName} submitted their morning update for ${date} late (after 9:40 AM). Reason: ${lateReason}`;
+            `${employee.fullName} submitted their morning update for ${date} late (after 10:00 AM). Reason: ${lateReason}`;
 
         }
 
