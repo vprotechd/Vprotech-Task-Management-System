@@ -34,7 +34,7 @@ app.use(helmet());
 // Allowed frontend origins
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://vprotech-task-management.onrender.com',
+  'https://vprotech-task-management-system.onrender.com',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 

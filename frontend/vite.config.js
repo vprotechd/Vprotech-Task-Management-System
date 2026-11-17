@@ -18,11 +18,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://vprotech-task-management-system1.onrender.com',
         changeOrigin: true,
       },
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: 'https://vprotech-task-management-system1.onrender.com',
         changeOrigin: true,
       },
     },
