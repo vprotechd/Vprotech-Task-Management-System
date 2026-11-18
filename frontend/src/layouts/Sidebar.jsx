@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   FiGrid, FiSunrise, FiSunset, FiList, FiBarChart2, FiBell, FiUser, FiLock, FiX,
-  FiUsers, FiCheckSquare, FiBriefcase, FiFileText, FiTrendingUp, FiVolume2,
+  FiUsers, FiCheckSquare, FiBriefcase, FiFileText, FiTrendingUp, FiVolume2, FiCalendar, 
 } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
 import { closeSidebar } from '../store/uiSlice';
@@ -16,6 +16,18 @@ const EMPLOYEE_LINKS = [
   { to: '/employee/notifications', label: 'Notifications', icon: FiBell },
   { to: '/employee/profile', label: 'Profile', icon: FiUser },
   { to: '/employee/change-password', label: 'Change Password', icon: FiLock },
+  {
+  to: '/employee/apply-leave',
+  label: 'Apply for Leave',
+  icon: FiCalendar
+},
+{
+  to: '/employee/my-leaves',
+  label: 'My Leaves',
+  icon: FiCalendar
+},
+
+
 ];
 
 const TEAM_LEAD_LINKS = [
@@ -47,6 +59,11 @@ const ADMIN_LINKS = [
   { to: '/admin/notifications', label: 'Notifications', icon: FiBell },
   { to: '/admin/profile', label: 'Profile', icon: FiUser },
   { to: '/admin/change-password', label: 'Change Password', icon: FiLock },
+  {
+  to: '/admin/leaves',
+  label: 'Leave Management',
+  icon: FiCalendar
+},
 ];
 
 const LINKS_BY_ROLE = {

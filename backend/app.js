@@ -17,6 +17,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const leaveRoutes = require('./routes/leaveRoutes');
 
 const app = express();
 
@@ -235,6 +236,16 @@ app.use(
 app.use(
   '/api/uploads',
   uploadRoutes
+);
+
+
+/* ============================================================
+   LEAVE MANAGEMENT ROUTES
+============================================================ */
+
+app.use(
+  '/api/leaves',
+  leaveRoutes
 );
 
 

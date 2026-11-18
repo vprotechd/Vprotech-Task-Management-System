@@ -141,6 +141,22 @@ const AdminPerformance = lazy(() =>
   import('./pages/admin/AdminPerformance')
 );
 
+
+
+const ApplyLeave = lazy(() =>
+  import('./pages/employee/ApplyLeave')
+);
+
+
+const MyLeaves = lazy(() =>
+  import('./pages/employee/MyLeaves')
+);
+
+
+const AdminLeaves = lazy(() =>
+  import('./pages/admin/AdminLeaves')
+);
+
 // ============================================================
 // ROLE REDIRECT
 // ============================================================
@@ -245,6 +261,16 @@ export default function App() {
               path="change-password"
               element={<ChangePassword />}
             />
+
+            <Route
+              path="apply-leave"
+              element={<ApplyLeave />}
+            />
+
+            <Route
+              path="my-leaves"
+              element={<MyLeaves />}
+            />
           </Route>
         </Route>
 
@@ -305,6 +331,8 @@ export default function App() {
               path="evening-updates"
               element={<EveningUpdates />}
             />
+
+
 
 
             
@@ -411,6 +439,11 @@ export default function App() {
               path="evening-updates"
               element={<AdminEveningUpdates />}
             />
+
+            <Route
+  path="leaves"
+  element={<AdminLeaves />}
+/>
 
             {/* ==================================================
                 SEPARATE MORNING REVIEW
