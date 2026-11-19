@@ -12,7 +12,6 @@ import {
   FiCheckCircle,
   FiClock,
   FiFilter,
-  FiFileSpreadsheet,
   FiClipboard,
 } from 'react-icons/fi';
 
@@ -716,7 +715,7 @@ export default function TeamLeadReports() {
                 {exporting ? (
                   <FiRefreshCw className="w-4 h-4 animate-spin" />
                 ) : (
-                  <FiFileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <FiFileText className="w-4 h-4 text-emerald-600" />
                 )}
                 Excel
               </button>

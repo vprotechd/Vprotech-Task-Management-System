@@ -19,7 +19,6 @@ import {
   FiUser,
   FiCheckCircle,
   FiArrowUpRight,
-  FiBriefcase,
   FiUserCheck,
   FiUsers as FiTeam,
   FiX,
