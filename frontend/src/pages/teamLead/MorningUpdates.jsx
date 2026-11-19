@@ -1,11 +1,122 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import {
+  FiSunrise,
+  FiCalendar,
+  FiClipboard,
+  FiUsers,
+  FiArrowUpRight,
+} from 'react-icons/fi';
 
 import axiosClient from '../../api/axiosClient';
 import DataTable from '../../components/DataTable';
 import StatusBadge from '../../components/StatusBadge';
 import { todayISO } from '../../utils/format';
+
+const styles = `
+  .mu-page {
+    animation: muRise .45s ease both;
+  }
+
+  @keyframes muRise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .mu-hero {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: linear-gradient(135deg,#0f1b33 0%,#16305c 55%,#1d4a8a 100%);
+    border-radius: 1rem;
+    box-shadow: 0 12px 30px rgba(15,27,51,.16);
+  }
+
+  .mu-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 85% 15%,rgba(56,189,248,.25),transparent 32%),
+      radial-gradient(circle at 10% 100%,rgba(99,102,241,.2),transparent 35%);
+  }
+
+  .mu-card {
+    background: #fff;
+    border: 1px solid #e6ecf5;
+    border-radius: 1rem;
+    box-shadow: 0 5px 18px rgba(15,27,51,.045);
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+
+  .mu-card:hover {
+    box-shadow: 0 10px 26px rgba(15,27,51,.075);
+  }
+
+  .mu-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 13px;
+    background: linear-gradient(135deg,#e0f2fe,#eef2ff);
+    color: #2563eb;
+  }
+
+  .mu-date-input {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #dbe5f1;
+    background: #f8fafc;
+    color: #172554;
+    border-radius: .75rem;
+    padding: .7rem .85rem;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+
+  .mu-date-input:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(14,165,233,.13);
+  }
+
+  .mu-info {
+    background: linear-gradient(110deg,#eff8ff,#f0f5ff);
+    border: 1px solid #dbeafe;
+    border-radius: .85rem;
+  }
+
+  .mu-table {
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  .mu-table > * {
+    min-width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .mu-hero {
+      border-radius: .85rem;
+    }
+
+    .mu-card {
+      border-radius: .85rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mu-page, .mu-card {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+`;
 
 export default function MorningUpdates() {
   const [date, setDate] = useState(todayISO());
@@ -57,8 +168,6 @@ export default function MorningUpdates() {
             : [];
 
         /*
-         * MORNING PAGE
-         *
          * Only show reports where the morning update
          * has been submitted.
          *
@@ -120,24 +229,18 @@ export default function MorningUpdates() {
       render: (row) =>
         row?.employee?.fullName || 'Unknown Employee',
     },
-
     {
       key: 'morning',
       label: 'Morning',
       render: (row) => (
-        <StatusBadge
-          status={row?.morning || 'missing'}
-        />
+        <StatusBadge status={row?.morning || 'missing'} />
       ),
     },
-
     {
       key: 'evening',
       label: 'Evening',
       render: (row) => (
-        <StatusBadge
-          status={row?.evening || 'missing'}
-        />
+        <StatusBadge status={row?.evening || 'missing'} />
       ),
     },
   ];
@@ -152,7 +255,6 @@ export default function MorningUpdates() {
       render: (row) =>
         row?.employee?.fullName || 'Unknown Employee',
     },
-
     {
       key: 'planned',
       label: 'Tasks Planned',
@@ -161,7 +263,6 @@ export default function MorningUpdates() {
         row?.totalPlanned ??
         0,
     },
-
     {
       key: 'completed',
       label: 'Completed',
@@ -170,7 +271,6 @@ export default function MorningUpdates() {
         row?.totalCompleted ??
         0,
     },
-
     {
       key: 'status',
       label: 'Morning Status',
@@ -187,7 +287,6 @@ export default function MorningUpdates() {
    */
   const missingRows = missing.map((item, index) => ({
     ...item,
-
     _id:
       item?.employee?._id ||
       item?.employee?.id ||
@@ -196,8 +295,6 @@ export default function MorningUpdates() {
   }));
 
   /*
-   * IMPORTANT:
-   *
    * Morning report opens the MORNING REVIEW page.
    */
   const handleReportClick = (row) => {
@@ -214,64 +311,191 @@ export default function MorningUpdates() {
   };
 
   return (
-    <div className="space-y-5">
+    <>
+      <style>{styles}</style>
 
-      {/* Date Filter */}
-      <div className="card p-4 flex items-center gap-3">
-        <label className="label m-0">
-          Date
-        </label>
+      <div className="mu-page max-w-7xl mx-auto space-y-6">
 
-        <input
-          type="date"
-          max={todayISO()}
-          value={date}
-          onChange={(event) =>
-            setDate(event.target.value)
-          }
-          className="input-field w-auto"
-        />
-      </div>
+        {/* Hero Section */}
+        <section className="mu-hero p-6 sm:p-8 text-white">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-sky-300/25 bg-sky-300/10 px-3 py-1 text-xs font-semibold text-sky-200 mb-4">
+                <FiSunrise />
+                Team Lead Workspace
+              </div>
 
-      {/* Submission Status */}
-      <div className="card p-5">
-        <h3 className="font-semibold text-navy-800 mb-4">
-          Submission Status — {date}
-        </h3>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Morning Updates
+              </h1>
 
-        <DataTable
-          columns={columns}
-          rows={missingRows}
-          loading={loading}
-          emptyTitle="No employees found"
-          emptyDescription="No employee submission information is available for this date."
-        />
-      </div>
+              <p className="text-sm sm:text-base text-blue-100/80 mt-2 max-w-2xl">
+                Monitor employee morning submissions, check task plans,
+                and review daily updates from your team.
+              </p>
+            </div>
 
-      {/* Morning Task Details */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4">
+            <div className="hidden sm:flex items-center justify-center w-20 h-20 rounded-2xl border border-white/15 bg-white/10">
+              <FiSunrise className="text-4xl text-sky-200" />
+            </div>
+          </div>
+
+          <div className="relative z-10 mt-6 pt-5 border-t border-white/15 flex flex-wrap gap-4 text-sm text-blue-100/85">
+            <span className="flex items-center gap-2">
+              <FiCalendar className="text-sky-300" />
+              Selected date: {date}
+            </span>
+
+            <span className="flex items-center gap-2">
+              <FiUsers className="text-sky-300" />
+              {missing.length} employee records
+            </span>
+
+            <span className="flex items-center gap-2">
+              <FiClipboard className="text-sky-300" />
+              {reports.length} morning reports
+            </span>
+          </div>
+        </section>
+
+        {/* Date Filter */}
+        <section className="mu-card p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="mu-icon">
+                <FiCalendar size={20} />
+              </div>
+
+              <div>
+                <h2 className="font-bold text-slate-800">
+                  Select Report Date
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Choose a date to view employee submissions.
+                </p>
+              </div>
+            </div>
+
+            <div className="w-full sm:w-auto sm:min-w-[230px]">
+              <label
+                htmlFor="morning-update-date"
+                className="block text-xs font-semibold text-slate-600 mb-2"
+              >
+                Date
+              </label>
+
+              <input
+                id="morning-update-date"
+                type="date"
+                max={todayISO()}
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className="mu-date-input"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Submission Status */}
+        <section className="mu-card p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div className="flex items-center gap-3">
+              <div className="mu-icon">
+                <FiUsers size={20} />
+              </div>
+
+              <div>
+                <h2 className="font-bold text-slate-800">
+                  Submission Status
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Employee morning and evening submission overview.
+                </p>
+              </div>
+            </div>
+
+            <span className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-full px-3 py-1.5 w-fit">
+              {date}
+            </span>
+          </div>
+
+          <div className="mu-table">
+            <DataTable
+              columns={columns}
+              rows={missingRows}
+              loading={loading}
+              emptyTitle="No employees found"
+              emptyDescription="No employee submission information is available for this date."
+            />
+          </div>
+        </section>
+
+        {/* Morning Task Details */}
+        <section className="mu-card p-5 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div className="flex items-center gap-3">
+              <div className="mu-icon">
+                <FiClipboard size={20} />
+              </div>
+
+              <div>
+                <h2 className="font-bold text-slate-800">
+                  Morning Task Details
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Click an employee to review and approve their morning task.
+                </p>
+              </div>
+            </div>
+
+            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1.5 w-fit">
+              {reports.length} Reports
+            </span>
+          </div>
+
+          <div className="mu-info p-4 mb-5 flex items-start gap-3">
+            <div className="text-blue-600 mt-0.5">
+              <FiArrowUpRight size={18} />
+            </div>
+
+            <p className="text-xs sm:text-sm text-blue-900 leading-relaxed">
+              Select any employee row to open the morning review page.
+              You can view their submitted task plan and review its status.
+            </p>
+          </div>
+
+          <div className="mu-table">
+            <DataTable
+              columns={reportColumns}
+              rows={reports}
+              loading={loading}
+              onRowClick={handleReportClick}
+              emptyTitle="No morning submissions yet"
+              emptyDescription="Employees who submit a morning plan for this date will appear here."
+            />
+          </div>
+        </section>
+
+        {/* Information Panel */}
+        <div className="mu-info p-4 sm:p-5 flex items-start gap-3">
+          <div className="mu-icon !w-9 !h-9 !rounded-xl">
+            <FiSunrise size={18} />
+          </div>
+
           <div>
-            <h3 className="font-semibold text-navy-800">
-              Morning Task Details — {date}
+            <h3 className="text-sm font-bold text-blue-950">
+              Morning Review
             </h3>
 
-            <p className="text-xs text-navy-400 mt-1">
-              Click an employee to review and approve their morning task.
+            <p className="text-xs sm:text-sm text-blue-800/80 mt-1 leading-relaxed">
+              This page displays submitted morning reports only.
+              Reports with approved or needs-correction statuses remain
+              available for review.
             </p>
           </div>
         </div>
 
-        <DataTable
-          columns={reportColumns}
-          rows={reports}
-          loading={loading}
-          onRowClick={handleReportClick}
-          emptyTitle="No morning submissions yet"
-          emptyDescription="Employees who submit a morning plan for this date will appear here."
-        />
       </div>
-
-    </div>
+    </>
   );
 }
