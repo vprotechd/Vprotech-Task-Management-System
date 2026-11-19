@@ -19,7 +19,7 @@ import {
   FiUser,
   FiCheckCircle,
   FiArrowUpRight,
-  FiBuilding,
+  FiBriefcase,
   FiUserCheck,
   FiUsers as FiTeam,
   FiX,
@@ -462,7 +462,7 @@ export default function MyEmployees() {
         label: 'Department',
         render: (row) => (
           <div className="flex items-center gap-2">
-            <FiBuilding className="h-4 w-4 text-slate-400 shrink-0" />
+            <FiBriefcase className="h-4 w-4 text-slate-400 shrink-0" />
             <span className="text-sm text-slate-600">
               {row?.department?.name ||
                 row?.department?.code ||
