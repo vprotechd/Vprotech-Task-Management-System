@@ -7,6 +7,12 @@ export function todayISO() {
   return toISODate(new Date());
 }
 
+export function tomorrowISO() {
+  const date = new Date(`${todayISO()}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
+}
+
 export function formatDateLabel(dateStr) {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
@@ -18,6 +24,18 @@ export function minutesToHours(mins) {
   const h = Math.floor(mins / 60);
   const m = Math.round(mins % 60);
   return `${h}h ${m}m`;
+}
+
+export function minutesToDecimalHours(minutes) {
+  const value = Number(minutes);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Number((value / 60).toFixed(2));
+}
+
+export function hoursToMinutes(hours) {
+  const value = Number(hours);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.round(value * 60);
 }
 
 export function roleLabel(role) {

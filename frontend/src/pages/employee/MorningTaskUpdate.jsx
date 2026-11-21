@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   FiPlus,
@@ -13,12 +14,13 @@ import {
   FiClock,
   FiFlag,
   FiSunrise,
+  FiRepeat,
 } from 'react-icons/fi';
 
 import axiosClient from '../../api/axiosClient';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
-import { todayISO } from '../../utils/format';
+import { todayISO, tomorrowISO } from '../../utils/format';
 
 /* Scoped styles (prefixed "mt-") so nothing clashes with your global CSS. */
 const styles = `
@@ -391,11 +393,23 @@ function mapReportToForm(report, fallbackLateReason = '') {
 ============================================================ */
 
 export default function MorningTaskUpdate() {
-  const [date, setDate] = useState(todayISO());
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialDate = [todayISO(), tomorrowISO()].includes(location.state?.repeatDate)
+    ? location.state.repeatDate
+    : todayISO();
+  const repeatTasksRef = useRef(
+    Array.isArray(location.state?.repeatTasks) ? location.state.repeatTasks : null
+  );
+  const repeatTargetDateRef = useRef(initialDate);
+  const loadRequestRef = useRef(0);
+  const [date, setDate] = useState(initialDate);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [existingReport, setExistingReport] = useState(null);
+  const [repeatedTaskCount, setRepeatedTaskCount] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [repeating, setRepeating] = useState(false);
   const [lockCheck, setLockCheck] = useState(Date.now());
 
   /* React copy of the late reason. The permanent copy is in localStorage. */
@@ -405,7 +419,7 @@ export default function MorningTaskUpdate() {
      FORM
   ========================================================== */
 
-  const { register, control, handleSubmit, reset, watch } = useForm({
+  const { register, control, handleSubmit, reset, watch, getValues } = useForm({
     defaultValues: {
       tasks: [emptyTask()],
       remarks: '',
@@ -478,6 +492,7 @@ export default function MorningTaskUpdate() {
 
   const loadDay = useCallback(
     async (selectedDate) => {
+      const requestId = ++loadRequestRef.current;
       setLoading(true);
       setLoadError(null);
 
@@ -485,6 +500,8 @@ export default function MorningTaskUpdate() {
         const response = await axiosClient.get('/tasks/day', {
           params: { date: selectedDate },
         });
+
+        if (requestId !== loadRequestRef.current) return;
 
         const report = extractReport(response);
 
@@ -502,9 +519,36 @@ export default function MorningTaskUpdate() {
           saveStoredLateReason(selectedDate, serverLateReason);
         }
 
-        /* Reset form WITHOUT losing the reason. */
-        reset(mapReportToForm(report, reasonToUse));
+        const repeatedTasks = repeatTasksRef.current;
+        const currentTasks = Array.isArray(report?.morning?.tasks)
+          ? report.morning.tasks.map(mapTaskFromServer)
+          : [];
+
+        if (
+          selectedDate === repeatTargetDateRef.current &&
+          Array.isArray(repeatedTasks) &&
+          repeatedTasks.length > 0
+        ) {
+          const copiedTasks = repeatedTasks.map((task) => ({
+            ...mapTaskFromServer(task),
+            _id: '',
+          }));
+
+          reset({
+            ...mapReportToForm(report, reasonToUse),
+            tasks: [...currentTasks, ...copiedTasks],
+          });
+          setRepeatedTaskCount(copiedTasks.length);
+          repeatTasksRef.current = null;
+          navigate(location.pathname, { replace: true, state: null });
+        } else {
+          /* Reset form WITHOUT losing the reason. */
+          reset(mapReportToForm(report, reasonToUse));
+          setRepeatedTaskCount(0);
+        }
       } catch (err) {
+        if (requestId !== loadRequestRef.current) return;
+
         console.error('Load morning tasks error:', err);
 
         const message =
@@ -513,15 +557,85 @@ export default function MorningTaskUpdate() {
         setLoadError(message);
         toast.error(message);
       } finally {
-        setLoading(false);
+        if (requestId === loadRequestRef.current) {
+          setLoading(false);
+        }
       }
     },
-    [reset]
+    [reset, navigate, location.pathname]
   );
 
   useEffect(() => {
     loadDay(date);
+
+    return () => {
+      loadRequestRef.current += 1;
+    };
   }, [date, loadDay]);
+
+  const repeatPreviousDayTasks = async () => {
+    if (repeating || !canEditTasks) return;
+
+    const sourceDate = new Date(`${date}T00:00:00.000Z`);
+    if (Number.isNaN(sourceDate.getTime())) {
+      toast.error('Select a valid task date before repeating tasks.');
+      return;
+    }
+
+    sourceDate.setUTCDate(sourceDate.getUTCDate() - 1);
+    const previousDate = sourceDate.toISOString().slice(0, 10);
+    setRepeating(true);
+
+    try {
+      const response = await axiosClient.get('/tasks/day', {
+        params: { date: previousDate },
+      });
+      const sourceReport = extractReport(response);
+      const copiedTasks = Array.isArray(sourceReport?.morning?.tasks)
+        ? sourceReport.morning.tasks.map((task) => ({
+            ...mapTaskFromServer(task),
+            _id: '',
+          }))
+        : [];
+
+      if (copiedTasks.length === 0) {
+        toast.info(`No tasks found for ${previousDate}.`);
+        return;
+      }
+
+      const currentValues = getValues();
+      const currentTasks = (currentValues.tasks || []).filter((task) => {
+        const hasSavedId = Boolean(task?._id);
+        const hasText = [
+          task?.title,
+          task?.description,
+          task?.expectedCompletion,
+          task?.remarks,
+        ].some((value) => String(value || '').trim());
+        const hasNonDefaultHours =
+          String(task?.estimatedTimeHours ?? '').trim() !== '' &&
+          Number(task.estimatedTimeHours) !== 1;
+
+        return hasSavedId || hasText || hasNonDefaultHours;
+      });
+
+      reset({
+        ...currentValues,
+        tasks: [...currentTasks, ...copiedTasks],
+      });
+      setRepeatedTaskCount((count) => count + copiedTasks.length);
+      toast.success(
+        `Copied ${copiedTasks.length} task${copiedTasks.length === 1 ? '' : 's'} from ${previousDate}.`
+      );
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message ||
+          'Could not repeat tasks from the previous day.'
+      );
+    } finally {
+      setRepeating(false);
+    }
+  };
 
   /* ==========================================================
      TASK VALIDATION
@@ -593,8 +707,8 @@ export default function MorningTaskUpdate() {
         return false;
       }
 
-      if (isFutureDate(date)) {
-        toast.error('Morning tasks cannot be entered for a future date.');
+      if (date > tomorrowISO()) {
+        toast.error('Morning tasks can only be planned up to tomorrow.');
         return false;
       }
 
@@ -812,7 +926,7 @@ export default function MorningTaskUpdate() {
             <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">Morning Task Update</h2>
             <p className="text-sm text-slate-300 mt-1">{prettyDate}</p>
             <p className="text-xs text-slate-400 mt-1">
-              Plan what you intend to work on today. Estimated task time is entered in hours.
+              Plan what you intend to work on this day. Estimated task time is entered in hours.
             </p>
           </div>
           <div>
@@ -821,7 +935,8 @@ export default function MorningTaskUpdate() {
               id="mt-date"
               type="date"
               value={date}
-              max={todayISO()}
+              max={tomorrowISO()}
+              disabled={repeating || saving}
               onChange={(e) => setDate(e.target.value)}
               className="mt-date"
             />
@@ -873,6 +988,13 @@ export default function MorningTaskUpdate() {
         </div>
       ) : (
         <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+          {repeatedTaskCount > 0 && (
+            <Callout tone="info" icon={FiClipboard} title="Tasks copied into this plan">
+              {repeatedTaskCount} task{repeatedTaskCount === 1 ? '' : 's'} added to the plan for {prettyDate}.
+              You can edit them or add more before submitting.
+            </Callout>
+          )}
+
           {/* Submitted / approved / past-date messages */}
           {submittedButEditable && (
             <Callout tone="success" icon={FiCheckCircle}>
@@ -901,14 +1023,26 @@ export default function MorningTaskUpdate() {
               Total Planned Tasks: <span className="text-navy-900 font-semibold">{totalTasks}</span>
             </p>
 
-            <button
-              type="button"
-              disabled={saving || !canEditTasks}
-              onClick={() => append(emptyTask())}
-              className="mt-btn-ghost"
-            >
-              <FiPlus className="h-4 w-4" /> Add Task
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={saving || repeating || !canEditTasks}
+                onClick={repeatPreviousDayTasks}
+                className="mt-btn-ghost"
+              >
+                <FiRepeat className="h-4 w-4" />
+                {repeating ? 'Repeating...' : 'Repeat Previous Day'}
+              </button>
+
+              <button
+                type="button"
+                disabled={saving || !canEditTasks}
+                onClick={() => append(emptyTask())}
+                className="mt-btn-ghost"
+              >
+                <FiPlus className="h-4 w-4" /> Add Task
+              </button>
+            </div>
           </div>
 
           {/* Tasks */}

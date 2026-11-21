@@ -10,13 +10,14 @@ import {
   FiFilter,
   FiRefreshCw,
   FiList,
+  FiRepeat,
 } from 'react-icons/fi';
 
 import axiosClient from '../../api/axiosClient';
 import DataTable from '../../components/DataTable';
 import Pagination from '../../components/Pagination';
 import StatusBadge from '../../components/StatusBadge';
-import { formatDateLabel } from '../../utils/format';
+import { formatDateLabel, todayISO, tomorrowISO } from '../../utils/format';
 
 const styles = `
 .mt-page {
@@ -287,6 +288,41 @@ export default function MyTasks() {
       key: 'status',
       label: 'Status',
       render: (r) => <StatusBadge status={r.status} />,
+    },
+    {
+      key: 'repeat',
+      label: 'Actions',
+      render: (r) => (
+        Array.isArray(r.morning?.tasks) && r.morning.tasks.length > 0 ? (
+          <div className="flex items-center gap-2">
+            {[
+              { label: 'Repeat Today', date: todayISO() },
+              { label: 'Repeat Tomorrow', date: tomorrowISO() },
+            ].map((target) => (
+              <button
+                key={target.label}
+                type="button"
+                className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100"
+                aria-label={`${target.label} tasks from ${formatDateLabel(r.taskDate)}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  navigate('/employee/morning-update', {
+                    state: {
+                      repeatTasks: r.morning.tasks,
+                      repeatDate: target.date,
+                    },
+                  });
+                }}
+              >
+                <FiRepeat className="h-4 w-4" />
+                {target.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className="text-navy-300">—</span>
+        )
+      ),
     },
   ];
 

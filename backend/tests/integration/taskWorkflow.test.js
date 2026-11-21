@@ -16,6 +16,23 @@ async function setupEmployeeWithTeamLead() {
 }
 
 describe('Morning -> Evening task workflow', () => {
+  test('morning tasks can be submitted for tomorrow', async () => {
+    await setupEmployeeWithTeamLead();
+    const token = await loginAs('emp@test.com');
+    const tomorrow = new Date();
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    const date = tomorrow.toISOString().slice(0, 10);
+
+    const res = await request(app)
+      .post('/api/tasks/morning')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ date, tasks: [{ title: 'Tomorrow task', estimatedTimeMinutes: 60 }], submit: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.report.taskDate.slice(0, 10)).toBe(date);
+    expect(res.body.data.report.morning.tasks[0].title).toBe('Tomorrow task');
+  });
+
   test('evening update is rejected when no morning plan exists for that date', async () => {
     const { emp } = await setupEmployeeWithTeamLead();
     const token = await loginAs('emp@test.com');

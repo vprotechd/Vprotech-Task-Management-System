@@ -14,12 +14,17 @@ import {
   FiClipboard,
   FiFileText,
   FiAlertCircle,
+  FiRepeat,
 } from 'react-icons/fi';
 
 import axiosClient from '../../api/axiosClient';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorState from '../../components/ErrorState';
-import { todayISO } from '../../utils/format';
+import {
+  hoursToMinutes,
+  minutesToDecimalHours,
+  todayISO,
+} from '../../utils/format';
 
 const styles = `
   .mmt-page {
@@ -287,7 +292,7 @@ const emptyTask = () => ({
   description: '',
   priority: 'Medium',
   expectedCompletion: '',
-  estimatedTimeMinutes: 60,
+  estimatedTimeHours: '',
   remarks: '',
 });
 
@@ -301,14 +306,27 @@ function minutesToHoursHint(mins) {
   return `≈ ${h}h ${m}m`;
 }
 
+function mapReportTask(task) {
+  return {
+    _id: task?._id || '',
+    title: task?.title || '',
+    description: task?.description || '',
+    priority: task?.priority || 'Medium',
+    expectedCompletion: task?.expectedCompletion || '',
+    estimatedTimeHours: minutesToDecimalHours(task?.estimatedTimeMinutes),
+    remarks: task?.remarks || '',
+  };
+}
+
 export default function MyMorningTask() {
   const [date, setDate] = useState(todayISO());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [existingReport, setExistingReport] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [repeating, setRepeating] = useState(false);
 
-  const { register, control, handleSubmit, reset, watch } = useForm({
+  const { register, control, handleSubmit, reset, watch, getValues } = useForm({
     defaultValues: { tasks: [emptyTask()], remarks: '' },
   });
 
@@ -334,15 +352,7 @@ export default function MyMorningTask() {
 
       if (report && report.morning.tasks.length > 0) {
         reset({
-          tasks: report.morning.tasks.map((t) => ({
-            _id: t._id,
-            title: t.title,
-            description: t.description,
-            priority: t.priority,
-            expectedCompletion: t.expectedCompletion,
-            estimatedTimeMinutes: t.estimatedTimeMinutes,
-            remarks: t.remarks,
-          })),
+          tasks: report.morning.tasks.map(mapReportTask),
           remarks: report.morning.remarks || '',
         });
       } else {
@@ -364,6 +374,73 @@ export default function MyMorningTask() {
     loadDay(date);
   }, [date, loadDay]);
 
+  const repeatPreviousDayTasks = async () => {
+    if (repeating) return;
+
+    const sourceDate = new Date(`${date}T00:00:00.000Z`);
+    if (Number.isNaN(sourceDate.getTime())) {
+      toast.error('Select a valid task date before repeating tasks.');
+      return;
+    }
+
+    sourceDate.setUTCDate(sourceDate.getUTCDate() - 1);
+    const previousDate = sourceDate.toISOString().slice(0, 10);
+
+    setRepeating(true);
+
+    try {
+      const response = await axiosClient.get('/tasks/day', {
+        params: { date: previousDate },
+      });
+      const sourceReport =
+        response.data?.data?.report ||
+        response.data?.report ||
+        null;
+      const repeatedTasks = Array.isArray(sourceReport?.morning?.tasks)
+        ? sourceReport.morning.tasks.map((task) => ({
+            ...mapReportTask(task),
+            _id: '',
+          }))
+        : [];
+
+      if (repeatedTasks.length === 0) {
+        toast.info(`No tasks found for ${previousDate}.`);
+        return;
+      }
+
+      const currentValues = getValues();
+      const currentTasks = (currentValues.tasks || []).filter((task) =>
+        [
+          task.title,
+          task.description,
+          task.expectedCompletion,
+          task.estimatedTimeHours,
+          task.remarks,
+        ].some(
+          (value) =>
+            value !== null &&
+            value !== undefined &&
+            String(value).trim() !== ''
+        )
+      );
+
+      reset({
+        ...currentValues,
+        tasks: [...currentTasks, ...repeatedTasks],
+      });
+      toast.success(
+        `Copied ${repeatedTasks.length} task${repeatedTasks.length === 1 ? '' : 's'} from ${previousDate}.`
+      );
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message ||
+          'Could not repeat tasks from the previous day.'
+      );
+    } finally {
+      setRepeating(false);
+    }
+  };
+
   // Editable at every status.
   const submittedButEditable =
     existingReport?.status === 'morning_submitted';
@@ -380,9 +457,9 @@ export default function MyMorningTask() {
     try {
       const { data: res } = await axiosClient.post('/tasks/morning', {
         date,
-        tasks: values.tasks.map((t) => ({
-          ...t,
-          estimatedTimeMinutes: Number(t.estimatedTimeMinutes),
+        tasks: values.tasks.map(({ estimatedTimeHours, ...task }) => ({
+          ...task,
+          estimatedTimeMinutes: hoursToMinutes(estimatedTimeHours),
         })),
         remarks: values.remarks,
         submit,
@@ -391,15 +468,7 @@ export default function MyMorningTask() {
       setExistingReport(res.data.report);
 
       reset({
-        tasks: res.data.report.morning.tasks.map((t) => ({
-          _id: t._id,
-          title: t.title,
-          description: t.description,
-          priority: t.priority,
-          expectedCompletion: t.expectedCompletion,
-          estimatedTimeMinutes: t.estimatedTimeMinutes,
-          remarks: t.remarks,
-        })),
+        tasks: res.data.report.morning.tasks.map(mapReportTask),
         remarks: res.data.report.morning.remarks || '',
       });
 
@@ -420,7 +489,7 @@ export default function MyMorningTask() {
 
   const totalMinutes = (watchedTasks || []).reduce(
     (total, task) =>
-      total + (Number(task?.estimatedTimeMinutes) || 0),
+      total + hoursToMinutes(task?.estimatedTimeHours),
     0
   );
 
@@ -578,14 +647,26 @@ export default function MyMorningTask() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => append(emptyTask())}
-                  className="mmt-primary"
-                >
-                  <FiPlus className="h-4 w-4" />
-                  Add Task
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={repeating || saving}
+                    onClick={repeatPreviousDayTasks}
+                    className="mmt-secondary"
+                  >
+                    <FiRepeat className="h-4 w-4" />
+                    {repeating ? 'Repeating...' : 'Repeat Previous Day'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => append(emptyTask())}
+                    className="mmt-primary"
+                  >
+                    <FiPlus className="h-4 w-4" />
+                    Add Task
+                  </button>
+                </div>
               </div>
 
               <div className="mmt-info mmt-info-blue mt-5">
@@ -665,31 +746,30 @@ export default function MyMorningTask() {
 
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                          Estimated Time (Minutes) *
+                          Estimated Time (Hours) *
                         </label>
 
                         <input
                           type="number"
-                          min={0}
-                          title="Estimated minutes"
+                          min="0.01"
+                          max="24"
+                          step="0.01"
+                          title="Estimated hours"
                           className="mmt-input"
-                          placeholder="e.g. 60"
+                          placeholder="e.g. 1.5"
                           {...register(
-                            `tasks.${idx}.estimatedTimeMinutes`,
+                            `tasks.${idx}.estimatedTimeHours`,
                             {
                               required: true,
-                              min: 0,
+                              min: 0.01,
+                              max: 24,
                             }
                           )}
                         />
 
-                        {minutesToHoursHint(
-                          watchedTasks?.[idx]?.estimatedTimeMinutes
-                        ) && (
+                        {hoursToMinutes(watchedTasks?.[idx]?.estimatedTimeHours) > 0 && (
                           <p className="text-[11px] text-blue-600 mt-1">
-                            {minutesToHoursHint(
-                              watchedTasks[idx].estimatedTimeMinutes
-                            )}
+                            Saved as {hoursToMinutes(watchedTasks[idx].estimatedTimeHours)} minutes
                           </p>
                         )}
                       </div>

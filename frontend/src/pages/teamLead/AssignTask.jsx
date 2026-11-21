@@ -18,14 +18,14 @@ import {
 } from 'react-icons/fi';
 
 import axiosClient from '../../api/axiosClient';
-import { todayISO } from '../../utils/format';
+import { hoursToMinutes, todayISO } from '../../utils/format';
 
 const emptyTask = () => ({
   title: '',
   description: '',
   priority: 'Medium',
   expectedCompletion: '',
-  estimatedTimeMinutes: '',
+  estimatedTimeHours: '',
   remarks: '',
 });
 
@@ -405,12 +405,10 @@ export default function AssignTask() {
     }
 
     for (const t of cleanedTasks) {
-      if (
-        t.estimatedTimeMinutes === '' ||
-        Number(t.estimatedTimeMinutes) <= 0
-      ) {
+      const hours = Number(t.estimatedTimeHours);
+      if (!Number.isFinite(hours) || hours < 0.01 || hours > 24) {
         toast.error(
-          `Enter a valid estimated time for "${t.title}".`
+          `Enter an estimated time between 0.01 and 24 hours for "${t.title}".`
         );
         return;
       }
@@ -431,7 +429,7 @@ export default function AssignTask() {
               description: t.description.trim(),
               priority: t.priority,
               expectedCompletion: t.expectedCompletion.trim(),
-              estimatedTimeMinutes: Number(t.estimatedTimeMinutes),
+              estimatedTimeMinutes: hoursToMinutes(t.estimatedTimeHours),
               remarks: t.remarks.trim(),
             });
 
@@ -813,20 +811,22 @@ export default function AssignTask() {
                   {/* Estimated time */}
                   <div>
                     <label className="at-label">
-                      Estimated Time (minutes) <span className="text-red-500">*</span>
+                      Estimated Time (hours) <span className="text-red-500">*</span>
                     </label>
 
                     <div className="relative">
                       <FiClock className="absolute left-3 top-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
                       <input
                         type="number"
-                        min="0"
-                        value={task.estimatedTimeMinutes}
+                        min="0.01"
+                        max="24"
+                        step="0.01"
+                        value={task.estimatedTimeHours}
                         onChange={(e) =>
-                          updateTask(idx, 'estimatedTimeMinutes', e.target.value)
+                          updateTask(idx, 'estimatedTimeHours', e.target.value)
                         }
                         className="at-input pl-10"
-                        placeholder="e.g. 120"
+                        placeholder="e.g. 1.5"
                       />
                     </div>
                   </div>
@@ -875,8 +875,8 @@ export default function AssignTask() {
           <div className="at-info p-3 flex items-start gap-2.5">
             <FiAlertCircle className="w-4 h-4 text-sky-700 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-slate-600 leading-relaxed">
-              Each task must have a title and a valid estimated time greater than
-              zero minutes before it can be assigned.
+              Enter each task’s estimated time in hours (0.01 to 24). Decimal
+              values such as 1.5 hours are supported.
             </p>
           </div>
         </section>

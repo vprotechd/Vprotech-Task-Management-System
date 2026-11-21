@@ -13,7 +13,7 @@ import {
 import axiosClient from '../../api/axiosClient';
 import DataTable from '../../components/DataTable';
 import StatusBadge from '../../components/StatusBadge';
-import { todayISO } from '../../utils/format';
+import { minutesToHours, todayISO } from '../../utils/format';
 
 const styles = `
   .mu-page {
@@ -262,6 +262,12 @@ export default function MorningUpdates() {
         row?.summary?.totalPlanned ??
         row?.totalPlanned ??
         0,
+    },
+    {
+      key: 'estimatedTime',
+      label: 'Estimated Time',
+      render: (row) =>
+        minutesToHours(row?.summary?.totalEstimatedMinutes ?? 0),
     },
     {
       key: 'completed',
